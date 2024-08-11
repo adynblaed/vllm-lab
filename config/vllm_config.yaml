@@ -1,0 +1,107 @@
+# vLLM Server Configuration
+# Learn more about these configs at the bottom of this page: https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html
+
+# vLLM settings
+vllm:
+  # Server settings
+  server:
+    host: 0.0.0.0
+    port: 8000
+    uvicorn_log_level: info
+    # allow_credentials: false
+    # allowed_origins: ["*"]
+    # allowed_methods: ["GET", "POST", "OPTIONS"]
+    # allowed_headers: ["*"]
+    # api_key: ${VLLM_API_KEY}  # Loaded from .env
+    # lora_modules: []
+    # prompt_adapters: []
+    # chat_template: null
+    # response_role: assistant
+    # root_path: null
+    # middleware: []
+    # return_tokens_as_token_ids: false
+    # disable_frontend_multiprocessing: false
+
+  # Model settings
+  model:
+    name: neuralmagic/Meta-Llama-3.1-8B-Instruct-FP8
+    download_dir: /data
+    load_format: auto
+    tokenizer_mode: auto
+    dtype: auto
+    kv_cache_dtype: auto
+    # max_model_len: null
+    # revision: null
+    # code_revision: null
+    # tokenizer: null
+    # tokenizer_revision: null
+    # quantization_param_path: null
+    # skip_tokenizer_init: false
+    # trust_remote_code: false
+
+  # Advanced settings
+  advanced:
+    device: auto
+    seed: 0
+    # max_seq_len_to_capture: 8192
+    # max_context_len_to_capture: null
+    # enforce_eager: false
+    # quantization: null
+    # rope_scaling: null
+    # rope_theta: null
+    # disable_custom_all_reduce: false
+    # enable_lora: false
+    # enable_prompt_adapter: false
+    # scheduler_delay_factor: 0.0
+    # guided_decoding_backend: outlines
+
+  # Performance settings
+  performance:
+    gpu_memory_utilization: 0.9
+    max_num_seqs: 256
+    tensor_parallel_size: 1
+    pipeline_parallel_size: 1
+    # enable_chunked_prefill: false
+    # max_num_batched_tokens: null
+    # distributed_executor_backend: ray
+    # worker_use_ray: false
+    # max_parallel_loading_workers: null
+    # block_size: 16
+    # swap_space: 4
+    # disable_custom_all_reduce: false
+
+# Launcher settings (custom, not passed to vLLM)
+launcher:
+  log_file: logs/vllm_server.log
+  health_check_directory: logs/health_checks
+  log_format: json
+  log_level: INFO
+  log_performance_metrics: true
+  log_rotation_backup_count: 72
+  log_rotation_interval: 1
+  log_rotation_max_bytes: 104857600
+  performance_log_interval: 30
+  
+# Logging settings
+logging:
+  correlation_id_header: X-Correlation-ID
+  log_request_details: true
+  max_log_len: 1000
+  sanitize_log_data: true
+
+# Security settings
+security:
+  # ssl_keyfile: ${SSL_KEYFILE_PATH}  # Loaded from .env
+  # ssl_certfile: ${SSL_CERTFILE_PATH}  # Loaded from .env
+  # ssl_ca_certs: null
+  # ssl_cert_reqs: 0
+
+# Custom settings (not passed to vLLM)
+custom:
+  health:
+    enabled: true
+    endpoint: /health
+    interval_seconds: 30
+    timeout_seconds: 5
+    unhealthy_threshold: 3
+    healthy_threshold: 2
