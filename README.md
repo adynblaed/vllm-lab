@@ -23,19 +23,19 @@ Copy/paste custom test configurations:
 cp config/vllm_config.yaml config/vllm_test.yaml
 ```
 
-Launch vLLM server with your test config:
+Launch a vLLM server with your test config:
 
 ```bash
 python server/vllm_server.py config/vllm_test.yaml
 ```
 
-Test vLLM server api health with the same config file:
+Test your server api health with the same config file:
 
  ```bash
 python test/vllm_api_health_check.py config/vllm_test.yaml 
 ```
 
-Run a benchmark (feel free to add more options and values):
+Run a benchmark (feel free to customize with more options and values):
 
 ```python
 python3 benchmarks/benchmark_serving.py \
