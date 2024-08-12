@@ -8,7 +8,7 @@ You can download a test ShareGPT dataset by running:
 wget https://huggingface.co/datasets/anon8231489123/ShareGPT_Vicuna_unfiltered/resolve/main/ShareGPT_V3_unfiltered_cleaned_split.json
 ```
 
-Run a benchmark (feel free to insert custom options and values):
+Then, run a benchmark (feel free to insert custom options and values):
 
 ```python
 python3 benchmarks/benchmark_serving.py \
