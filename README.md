@@ -14,7 +14,7 @@ An inference environment for launching and benchmarking `vLLM` servers with cust
 Install dependencies:
 
 ```bash
-pip install -r reqirements.txt
+pip install -r requirements.txt
 ```
 
 Copy/paste custom test configurations:
@@ -23,19 +23,19 @@ Copy/paste custom test configurations:
 cp config/vllm_config.yaml config/vllm_test.yaml
 ```
 
-Launch a vLLM server with your custom test config:
+Launch a `vllm_server` with your custom test config:
 
 ```bash
 python server/vllm_server.py config/vllm_test.yaml
 ```
 
-Test your server API health with the same config file:
+Test your `vllm_api_health` with the same config file:
 
  ```bash
 python test/vllm_api_health_check.py config/vllm_test.yaml 
 ```
 
-Run a benchmark (feel free to customize with more options and values):
+Run a `benchmark` (feel free to customize with more options and values):
 
 ```python
 python3 benchmarks/benchmark_serving.py \
