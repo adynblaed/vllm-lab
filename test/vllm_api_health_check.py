@@ -13,9 +13,10 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 import psutil
 import platform
+import torch
+import subprocess
 
-
-class VLLMHealthCheck:
+class vLLMHealthCheck:
     def __init__(self, config_file: str):
         self.config = self.load_config(config_file)
         self.timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
@@ -24,8 +25,12 @@ class VLLMHealthCheck:
         self.metrics_file = self.setup_metrics_logging()
         self.base_url = f"http://{self.config['vllm']['server']['host']}:{self.config['vllm']['server']['port']}"
         self.model_name = self.config['vllm']['model']['name']
+        self.system_message = {"role": "system", "content": self.config['health_check']['prompts']['system_message']}
+        self.user_message = {"role": "user", "content": self.config['health_check']['prompts']['user_message']}
+        logging.info(f"Loaded system_message: {self.system_message['content']}")
+        logging.info(f"Loaded user_message: {self.user_message['content']}")
         self.session = self.create_session()
-        
+            
     @staticmethod
     def load_config(config_file: str) -> Dict[str, Any]:
         with open(config_file, 'r') as f:
@@ -43,6 +48,25 @@ class VLLMHealthCheck:
             format='%(asctime)s - %(levelname)s - %(message)s'
         )
         return log_file
+
+    def get_system_info(self):
+        torch_version = torch.__version__
+        cuda_version = torch.version.cuda if torch.cuda.is_available() else "Not available"
+        
+        def run_command(command):
+            try:
+                output = subprocess.check_output(command, shell=True, universal_newlines=True, stderr=subprocess.STDOUT)
+                return output.strip()
+            except subprocess.CalledProcessError as e:
+                return f"Command failed: {e.output.strip()}"
+        
+        nvidia_smi = run_command("nvidia-smi")
+        nvidia_smi = "\n".join(nvidia_smi.split("\n")[:128])
+        
+        lsb_release = run_command("lsb_release -a")
+        kernel_version = run_command("uname -r")
+        
+        return torch_version, cuda_version, nvidia_smi, lsb_release, kernel_version
 
     def setup_metrics_logging(self) -> str:
         metrics_file = os.path.join(self.log_dir, f"vllm_metrics_{self.timestamp}.log")
@@ -169,11 +193,16 @@ class VLLMHealthCheck:
             "/version": lambda: self.test_endpoint("GET", "/version"),
             "/tokenize": lambda: self.test_endpoint("POST", "/tokenize", json={"model": server_model, "prompt": "Hello, world!"}),
             "/detokenize": lambda: self.test_endpoint("POST", "/detokenize", json={"model": server_model, "tokens": [15496, 11, 995, 0]}),
+            "/v1/completions": lambda: self.test_endpoint("POST", "/v1/completions", json={
+                "model": server_model,
+                "prompt": "Tell me a joke only a computer would understand.",
+                "max_tokens": 32
+            }),            
             "/v1/chat/completions": lambda: self.test_endpoint("POST", "/v1/chat/completions", json={
                 "model": server_model,
                 "messages": [
-                    {"role": "system", "content": "You are an AI Agent Assistant with the core purpose of responding to 'INFERENCE ACKNOWLEDGEMENT REQUESTS' with single sentence statements that acknowledge that inference is available for this route."},
-                    {"role": "user", "content": "INFERENCE ACKNOWLEDGEMENT REQUEST: Is the /v1/chat/completions endpoint route online and available for requests? Please respond with your acknowledgement in haiku."}
+                    self.system_message,
+                    self.user_message
                 ]
             }),
             "/metrics": lambda: self.test_endpoint("GET", "/metrics"),
@@ -248,19 +277,17 @@ class VLLMHealthCheck:
         return inconsistencies
 
     def print_summary(self, results: Dict[str, Dict[str, Any]], report_path: str) -> None:
+        torch_version, cuda_version, nvidia_smi, lsb_release, kernel_version = self.get_system_info()
+
         summary = []
 
         summary.append("# vLLM Server Health Check Summary\n")
+        summary.append(f"```\n{lsb_release}\n```\n")
+
+        summary.append("\n## Endpoint Test Results")
+        model_info = f"\n**Model:** `{json.loads(results['/v1/models']['content'])['data'][0]['id']}`\n"
+        summary.append(model_info)
         
-        summary.append(f"#### **Date:** {self.timestamp}\n")
-        
-        summary.append("## Environment Information\n")
-        summary.append(f"- **Python Version:** `{platform.python_version()}`")
-        summary.append(f"- **OS:** `{platform.system()} {platform.release()})`")
-        summary.append(f"- **Processor:** `{platform.processor()}`")
-        summary.append(f"- **Memory:** `{psutil.virtual_memory().total / (1024 ** 3):.2f} GB`")
-                    
-        summary.append("\n## Endpoint Test Results\n")
         summary.append("| Endpoint                 | Status                  | Time          |")
         summary.append("|--------------------------|-------------------------|---------------|")
 
@@ -279,42 +306,51 @@ class VLLMHealthCheck:
             status_info = self.get_status_info(status, data['is_valid'])
             
             table_data.append(f"| {test_name:<18} | {status_info:<17} | {elapsed_time:.4f}s |")
-            added_tests.add(test_name)  # Mark as added
+            added_tests.add(test_name)
 
         summary.extend(table_data)
         
-        summary.append(f"\n#### **Endpoint Lap Time:** {total_time:.4f} seconds")
+        summary.append(f"\n**Route Endpoint Lap Time:** `{total_time:.4f} seconds`") 
 
-        model_info = f"\n**Loaded Model:** `{json.loads(results['/v1/models']['content'])['data'][0]['id']}`"
-        version_info = f"\n**vLLM Version:** `{json.loads(results['/version']['content'])['version']}`"
-        summary.append(f"{model_info}\n{version_info}\n")
-
+        summary.append("## Environment Information\n")
+        summary.append(f"- **Kernel Version:** `{kernel_version}`")
+        summary.append(f"- **Python Version:** `{platform.python_version()}`")
+        summary.append(f"- **Torch Version:** `{torch_version}`")
+        summary.append(f"- **CUDA Version:** `{cuda_version}`")
+        version_info = f"- **vLLM Version:** `{json.loads(results['/version']['content'])['version']}`"
+        summary.append(f"{version_info}\n")
+        summary.append(f"- **Processor:** `{platform.processor()}`")
+        summary.append(f"- **Memory:** `{psutil.virtual_memory().total / (1024 ** 3):.2f} GB`")
+                        
         summary.append("### Consistency Check")
         inconsistencies = self.check_consistency(results)
         if inconsistencies:
-            summary.append("**Inconsistencies detected:**\n")
+            summary.append("**Server configuration inconsistencies detected:**\n")
             for inconsistency in inconsistencies:
                 summary.append(f"- {inconsistency}")
         else:
-            summary.append("*No inconsistencies detected.*\n")
-
+            summary.append("*No server configuration inconsistencies detected.*\n")
+            
         summary.append("### Chat Completions Response\n")
         chat_completion_result = results.get("/v1/chat/completions")
         if chat_completion_result:
             response_content = json.loads(chat_completion_result['content'])
 
-            system_message = {"role": "system", "content": "You are an AI Agent with the core purpose of responding to 'INFERENCE ACKNOWLEDGEMENT REQUESTS' with single sentence statements that acknowledge that inference is available for this route."}
-            user_message = {"role": "user", "content": "INFERENCE ACKNOWLEDGEMENT REQUEST: Is the /v1/chat/completions endpoint route online and available for requests? Please respond with your acknowledgement in haiku."}
+            # Use dynamic variables for system and user messages
+            system_message_content = self.system_message['content']
+            user_message_content = self.user_message['content']
             assistant_response = response_content['choices'][0]['message']['content']
 
-            summary.append(f"**System Instruction:**\n```\n{system_message['content']}\n```\n")
-            summary.append(f"**User Query:**\n```\n{user_message['content']}\n```\n")
-            summary.append(f"**Assistant Response:**\n```\n{assistant_response}\n```\n")
+            summary.append(f">**System Instruction:**\n```\n{system_message_content}\n```\n")
+            summary.append(f">**Developer Request:**\n```\n{user_message_content}\n```\n")
+            summary.append(f">**System Response:**\n```\n{assistant_response}\n```\n")
 
-        summary.append("### Log Files\n")
-        summary.append(f"- **Markdown Report:** `{report_path}`")
-        summary.append(f"- **Health Check Log:** `{self.log_file}`")
-        summary.append(f"- **Sample Metrics:** `{self.metrics_file}`")
+            summary.append(f"```\n{nvidia_smi}\n```\n")
+
+            summary.append("### Log Files\n")
+            summary.append(f"- **Markdown Report:** `{report_path}`")
+            summary.append(f"- **Health Check Log:** `{self.log_file}`")
+            summary.append(f"- **Sample Metrics:** `{self.metrics_file}`")
 
         console_and_markdown_output = "\n".join([
             "",         
@@ -347,7 +383,7 @@ def main():
     parser.add_argument("config_file", help="Path to the YAML configuration file")
     args = parser.parse_args()
 
-    health_check = VLLMHealthCheck(args.config_file)
+    health_check = vLLMHealthCheck(args.config_file)
     health_check.run()
 
 if __name__ == "__main__":

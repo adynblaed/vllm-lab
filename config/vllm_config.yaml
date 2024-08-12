@@ -89,6 +89,11 @@ logging:
   max_log_len: 1000
   sanitize_log_data: true
 
+health_check:
+  prompts:
+    system_message: "You are an AI Assistant that responds to 'INFERENCE ACKNOWLEDGEMENT REQUESTS:' on route: /v1/chat/completions"
+    user_message: "INFERENCE ACKNOWLEDGEMENT REQUEST: Is this endpoint route online and available for requests? Please respond with your acknowledgement in haiku."
+
 # Security settings
 security:
   # ssl_keyfile: ${SSL_KEYFILE_PATH}  # Loaded from .env
