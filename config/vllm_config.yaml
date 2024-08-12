@@ -1,7 +1,12 @@
-# vLLM Server Configuration
-# Learn more about these configs at the bottom of this page: https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html
+# ██╗   ██╗██╗     ██╗     ███╗   ███╗    ███████╗███████╗██████╗ ██╗   ██╗███████╗██████╗ 
+# ██║   ██║██║     ██║     ████╗ ████║    ██╔════╝██╔════╝██╔══██╗██║   ██║██╔════╝██╔══██╗
+# ██║   ██║██║     ██║     ██╔████╔██║    ███████╗█████╗  ██████╔╝██║   ██║█████╗  ██████╔╝
+# ╚██╗ ██╔╝██║     ██║     ██║╚██╔╝██║    ╚════██║██╔══╝  ██╔══██╗╚██╗ ██╔╝██╔══╝  ██╔══██╗
+#  ╚████╔╝ ███████╗███████╗██║ ╚═╝ ██║    ███████║███████╗██║  ██║ ╚████╔╝ ███████╗██║  ██║
+#   ╚═══╝  ╚══════╝╚══════╝╚═╝     ╚═╝    ╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝
+#
+# Docs: https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html
 
-# vLLM settings
 vllm:
   # Server settings
   server:
@@ -59,8 +64,10 @@ vllm:
   performance:
     gpu_memory_utilization: 0.9
     max_num_seqs: 256
+    swap_space: 16                       
     tensor_parallel_size: 1
     pipeline_parallel_size: 1
+    disable_log_requests: true    
     # enable_chunked_prefill: false
     # max_num_batched_tokens: null
     # distributed_executor_backend: ray
@@ -89,24 +96,8 @@ logging:
   max_log_len: 1000
   sanitize_log_data: true
 
+# Config for completions in test/vllm_server_health_check.py
 health_check:
   prompts:
     system_message: "You are an AI Assistant that responds to 'INFERENCE ACKNOWLEDGEMENT REQUESTS:' on route: /v1/chat/completions"
     user_message: "INFERENCE ACKNOWLEDGEMENT REQUEST: Is this endpoint route online and available for requests? Please respond with your acknowledgement in haiku."
-
-# Security settings
-security:
-  # ssl_keyfile: ${SSL_KEYFILE_PATH}  # Loaded from .env
-  # ssl_certfile: ${SSL_CERTFILE_PATH}  # Loaded from .env
-  # ssl_ca_certs: null
-  # ssl_cert_reqs: 0
-
-# Custom settings (not passed to vLLM)
-custom:
-  health:
-    enabled: true
-    endpoint: /health
-    interval_seconds: 30
-    timeout_seconds: 5
-    unhealthy_threshold: 3
-    healthy_threshold: 2

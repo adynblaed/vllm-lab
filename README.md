@@ -1,4 +1,4 @@
-# vLLM Benchmark Arena
+# vLLM Lab
 
 A python tool for launching and benchmarking vLLM servers with customizable `yaml` configurations for compatible large language models.
 
@@ -41,12 +41,11 @@ Run a benchmark (feel free to insert custom options and values):
 python3 benchmarks/benchmark_serving.py \
     --backend openai \
     --base-url http://0.0.0.0:8000 \
-    --dataset-name random \
     --model neuralmagic/Meta-Llama-3.1-8B-Instruct-FP8 \
-    --save-result \
-    --result-dir benchmarks/results \
-    --result-filename init_benchmark.json \
-    --request-rate 100 \
+    --num-prompts 1000 \
+    --dataset-name sharegpt  \
+    --dataset-path benchmarks/data/ShareGPT_V3_cleaned_split_test_dataset.json \
+    --request-rate 1000 \
     --seed 12345
 ```
 
@@ -140,9 +139,9 @@ options:
 
 For more details, check out [`api_server.py` in the vLLM source repo](https://github.com/vllm-project/vllm/blob/main/vllm/entrypoints/openai/api_server.py) and the [`benchmarks` from the latest main branch](https://github.com/vllm-project/vllm/tree/main/benchmarks). If you run into weird problems or compatibility hurdles, [visit vLLM's `issues` page](https://github.com/vllm-project/vllm/issues) to see if there's a similar shared error others have reported.
 
-## Configuration
+## Server Configuration Options
 
-The `vllm_config.yaml` file wraps all `vllm serve cli` args through a developer friendly config file that can be duplicated and version controlled for varied benchmark settings and model inference performance. [Visit the bottom of this page to learn more about these configuration arguments](https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html). When a parameter is `null` - vLLM will use `defaults`, either from its internal settings, the loaded model's configuration, or by auto-detecting optimal values based on your system and other specified parameters. Uncomment the configurations you need and adjust the values as desired. Create and save as many config variations as you'd like, editing `server`, `model`, `performance`, and `system` settings to whatever best suits your inference goals.
+The `vllm_config.yaml` file wraps all `vllm serve cli` args through a developer friendly config file that can be duplicated and version controlled for varied benchmark settings and model inference performance. [Visit the bottom of this page to learn more about these configuration arguments](https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html). Uncomment the configurations you need and adjust the values as desired. Create and save as many config variations as you'd like, editing `server`, `model`, `performance`, and `system` settings to whatever best suits your inference goals.
 
 ```yaml
 vllm:
@@ -266,33 +265,26 @@ vllm:
     log_rotation_max_bytes: 104857600          # Maximum log file size before rotation
     performance_log_interval: 30               # Interval for logging performance metrics (seconds)
 
-  # Logging Configuration
-  logging:
-    correlation_id_header: X-Correlation-ID    # Header for request correlation ID
-    log_request_details: true                  # Log details of incoming requests
-    max_log_len: 1000                          # Maximum length for log messages
-    sanitize_log_data: true                    # Remove sensitive data from logs
-
-  # Security Configuration
-  security:
-    # ssl_keyfile: ${SSL_KEYFILE_PATH}           # Path to SSL key file
-    # ssl_certfile: ${SSL_CERTFILE_PATH}         # Path to SSL certificate file
-    # ssl_ca_certs: null                         # Path to CA certificates file
-    # ssl_cert_reqs: 0                           # Client certificate requirements
-
-  # Custom Settings (not passed to vLLM)
-  custom:
-    health:
-      enabled: true                            # Enable health check endpoint
-      endpoint: /health                        # Health check URL path
-      interval_seconds: 30                     # Interval between health checks (seconds)
-      timeout_seconds: 5                       # Timeout for health check requests (seconds)
-      unhealthy_threshold: 3                   # Failed checks before marking unhealthy
-      healthy_threshold: 2                     # Successful checks to mark as healthy
-
     resource_limits:
       # max_concurrent_requests: 100             # Maximum number of concurrent requests
       # request_timeout_seconds: 300             # Request timeout in seconds
       # max_batch_size: 32                       # Maximum batch size for inference
 
+    # Security Configuration
+    security:
+      # ssl_keyfile: ${SSL_KEYFILE_PATH}           # Path to SSL key file
+      # ssl_certfile: ${SSL_CERTFILE_PATH}         # Path to SSL certificate file
+      # ssl_ca_certs: null                         # Path to CA certificates file
+      # ssl_cert_reqs: 0                           # Client certificate requirements
+  
+    # Logging Configuration
+    logging:
+      correlation_id_header: X-Correlation-ID    # Header for request correlation ID
+      log_request_details: true                  # Log details of incoming requests
+      max_log_len: 1000                          # Maximum length for log messages
+      sanitize_log_data: true                    # Remove sensitive data from logs
+      health_check:                              # Settings for completions in test/vllm_server_health_check.py
+        prompts:
+          system_message: "You are an AI Assistant that responds to 'INFERENCE ACKNOWLEDGEMENT REQUESTS:' on route: /v1/chat/completions"
+          user_message: "INFERENCE ACKNOWLEDGEMENT REQUEST: Is this endpoint route online and available for requests? Please respond with your acknowledgement in haiku."
 ```

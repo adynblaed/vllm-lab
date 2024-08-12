@@ -131,10 +131,44 @@ class vLLMServer:
 
     def _build_command(self) -> List[str]:
         command = ["vllm", "serve", self.config['vllm']['model']['name']]
+        
+        supported_args = {
+            'host', 'port', 'uvicorn_log_level', 'allow_credentials', 'allowed_origins',
+            'allowed_methods', 'allowed_headers', 'api_key', 'lora_modules',
+            'prompt_adapters', 'chat_template', 'response_role', 'ssl_keyfile',
+            'ssl_certfile', 'ssl_ca_certs', 'ssl_cert_reqs', 'root_path',
+            'middleware', 'return_tokens_as_token_ids', 'disable_frontend_multiprocessing',
+            'model', 'tokenizer', 'skip_tokenizer_init', 'revision', 'code_revision',
+            'tokenizer_revision', 'tokenizer_mode', 'trust_remote_code', 'download_dir',
+            'load_format', 'dtype', 'kv_cache_dtype', 'quantization_param_path',
+            'max_model_len', 'guided_decoding_backend', 'distributed_executor_backend',
+            'worker_use_ray', 'pipeline_parallel_size', 'tensor_parallel_size',
+            'max_parallel_loading_workers', 'ray_workers_use_nsight', 'block_size',
+            'enable_prefix_caching', 'disable_sliding_window', 'use_v2_block_manager',
+            'num_lookahead_slots', 'seed', 'swap_space', 'cpu_offload_gb',
+            'gpu_memory_utilization', 'num_gpu_blocks_override', 'max_num_batched_tokens',
+            'max_num_seqs', 'max_logprobs', 'disable_log_stats', 'quantization',
+            'rope_scaling', 'rope_theta', 'enforce_eager', 'max_context_len_to_capture',
+            'max_seq_len_to_capture', 'disable_custom_all_reduce', 'tokenizer_pool_size',
+            'tokenizer_pool_type', 'tokenizer_pool_extra_config', 'enable_lora',
+            'max_loras', 'max_lora_rank', 'lora_extra_vocab_size', 'lora_dtype',
+            'long_lora_scaling_factors', 'max_cpu_loras', 'fully_sharded_loras',
+            'enable_prompt_adapter', 'max_prompt_adapters', 'max_prompt_adapter_token',
+            'device', 'scheduler_delay_factor', 'enable_chunked_prefill', 'speculative_model',
+            'num_speculative_tokens', 'speculative_draft_tensor_parallel_size',
+            'speculative_max_model_len', 'speculative_disable_by_batch_size',
+            'ngram_prompt_lookup_max', 'ngram_prompt_lookup_min', 'spec_decoding_acceptance_method',
+            'typical_acceptance_sampler_posterior_threshold', 'typical_acceptance_sampler_posterior_alpha',
+            'disable_logprobs_during_spec_decoding', 'model_loader_extra_config',
+            'ignore_patterns', 'preemption_mode', 'served_model_name',
+            'qlora_adapter_name_or_path', 'otlp_traces_endpoint', 'engine_use_ray',
+            'disable_log_requests', 'max_log_len'
+        }
+        
         for section, options in self.config['vllm'].items():
             if isinstance(options, dict):
                 for key, value in options.items():
-                    if value is None or (section == 'model' and key == 'name'):
+                    if key not in supported_args or value is None or (section == 'model' and key == 'name'):
                         continue
                     if key == 'api_key' and not value:
                         continue

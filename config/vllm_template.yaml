@@ -6,10 +6,6 @@
 #   ╚═══╝  ╚══════╝╚══════╝╚═╝     ╚═╝    ╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝
 #
 # Docs: https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html
-#
-# Note: When a parameter is null in this YAML config, vLLM will use intelligent defaults, 
-# either from its internal settings, the loaded model's configuration, 
-# or by auto-detecting optimal values based on your system and other specified parameters.
 
 vllm:
   # Server Settings
@@ -79,13 +75,13 @@ vllm:
     gpu_memory_utilization: 0.9              # Fraction of GPU memory to use (0.0 to 1.0)
     max_num_seqs: 256                        # Maximum number of sequences per iteration    
     distributed_executor_backend: mp         # Backend for distributed serving (ray/mp)
+    swap_space: 16                           # CPU swap space size (GiB) per GPU
     tensor_parallel_size: 1                  # Number of tensor parallel replicas       
     # pipeline_parallel_size: 1                # Number of pipeline parallel stages
     # max_parallel_loading_workers: null       # Number of workers for parallel model loading
     # block_size: 16                           # Token block size for contiguous processing
     # enable_prefix_caching: false             # Enable automatic prefix caching
     # enforce_eager: false                     # Always use eager-mode PyTorch
-    # swap_space: 4                            # CPU swap space size (GiB) per GPU
     # cpu_offload_gb: 0                        # Space (GiB) to offload to CPU per GPU
     # disable_sliding_window: false            # Disable sliding window attention
     # use_v2_block_manager: false              # Use BlockSpaceManagerV2
@@ -132,31 +128,26 @@ vllm:
     log_rotation_max_bytes: 104857600          # Maximum log file size before rotation
     performance_log_interval: 30               # Interval for logging performance metrics (seconds)
 
-  # Logging Configuration
-  logging:
-    correlation_id_header: X-Correlation-ID    # Header for request correlation ID
-    log_request_details: true                  # Log details of incoming requests
-    max_log_len: 1000                          # Maximum length for log messages
-    sanitize_log_data: true                    # Remove sensitive data from logs
-
-  # Security Configuration
-  security:
-    # ssl_keyfile: ${SSL_KEYFILE_PATH}           # Path to SSL key file
-    # ssl_certfile: ${SSL_CERTFILE_PATH}         # Path to SSL certificate file
-    # ssl_ca_certs: null                         # Path to CA certificates file
-    # ssl_cert_reqs: 0                           # Client certificate requirements
-
-  # Custom Settings (not passed to vLLM)
-  custom:
-    health:
-      enabled: true                            # Enable health check endpoint
-      endpoint: /health                        # Health check URL path
-      interval_seconds: 30                     # Interval between health checks (seconds)
-      timeout_seconds: 5                       # Timeout for health check requests (seconds)
-      unhealthy_threshold: 3                   # Failed checks before marking unhealthy
-      healthy_threshold: 2                     # Successful checks to mark as healthy
-
     resource_limits:
       # max_concurrent_requests: 100             # Maximum number of concurrent requests
       # request_timeout_seconds: 300             # Request timeout in seconds
       # max_batch_size: 32                       # Maximum batch size for inference
+
+    # Security Configuration
+    security:
+      # ssl_keyfile: ${SSL_KEYFILE_PATH}           # Path to SSL key file
+      # ssl_certfile: ${SSL_CERTFILE_PATH}         # Path to SSL certificate file
+      # ssl_ca_certs: null                         # Path to CA certificates file
+      # ssl_cert_reqs: 0                           # Client certificate requirements
+  
+    # Logging Configuration
+    logging:
+      correlation_id_header: X-Correlation-ID    # Header for request correlation ID
+      log_request_details: true                  # Log details of incoming requests
+      max_log_len: 1000                          # Maximum length for log messages
+      sanitize_log_data: true                    # Remove sensitive data from logs
+      
+      health_check:                              # Settings for completions in test/vllm_server_health_check.py
+        prompts:
+          system_message: "You are an AI Assistant that responds to 'INFERENCE ACKNOWLEDGEMENT REQUESTS:' on route: /v1/chat/completions"
+          user_message: "INFERENCE ACKNOWLEDGEMENT REQUEST: Is this endpoint route online and available for requests? Please respond with your acknowledgement in haiku."
