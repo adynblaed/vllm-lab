@@ -23,13 +23,13 @@ Copy/paste custom test configurations:
 cp config/vllm_config.yaml config/vllm_test.yaml
 ```
 
-Launch a vLLM server with your test config:
+Launch a vLLM server with your custom test config:
 
 ```bash
 python server/vllm_server.py config/vllm_test.yaml
 ```
 
-Test your server api health with the same config file:
+Test your api health with the same config file:
 
  ```bash
 python test/vllm_api_health_check.py config/vllm_test.yaml 
