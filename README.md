@@ -17,25 +17,25 @@ Install dependencies:
 pip install -r reqirements.txt
 ```
 
-Copy/paste custom or test configurations:
+Copy/paste custom test configurations:
 
 ```bash
 cp config/vllm_config.yaml config/vllm_test.yaml
 ```
 
-Launch vLLM server:
+Launch vLLM server with your test config:
 
 ```bash
 python server/vllm_server.py config/vllm_test.yaml
 ```
 
-Test vLLM server api health:
+Test vLLM server api health with the same config file:
 
  ```bash
 python test/vllm_api_health_check.py config/vllm_test.yaml 
 ```
 
-Run a benchmark (feel free to insert custom options and values):
+Run a benchmark (feel free to add more options and values):
 
 ```python
 python3 benchmarks/benchmark_serving.py \
@@ -68,7 +68,7 @@ python3 benchmarks/benchmark_serving.py \
 ### Benchmark Options
 
 ```python
-root@a945b872d57c:~/vllm-benchmark-arena/benchmarks# python3 benchmark_serving.py --help
+root@a945b872d57c:~/vllm-lab/benchmarks# python3 benchmark_serving.py --help
 usage: benchmark_serving.py [-h]
                             [--backend {tgi,vllm,lmdeploy,deepspeed-mii,openai,openai-chat,tensorrt-llm,scalellm}]
                             [--base-url BASE_URL] [--host HOST] [--port PORT] [--endpoint ENDPOINT]
@@ -264,18 +264,6 @@ vllm:
     log_rotation_interval: 1                   # Log rotation interval (hours)
     log_rotation_max_bytes: 104857600          # Maximum log file size before rotation
     performance_log_interval: 30               # Interval for logging performance metrics (seconds)
-
-    resource_limits:
-      # max_concurrent_requests: 100             # Maximum number of concurrent requests
-      # request_timeout_seconds: 300             # Request timeout in seconds
-      # max_batch_size: 32                       # Maximum batch size for inference
-
-    # Security Configuration
-    security:
-      # ssl_keyfile: ${SSL_KEYFILE_PATH}           # Path to SSL key file
-      # ssl_certfile: ${SSL_CERTFILE_PATH}         # Path to SSL certificate file
-      # ssl_ca_certs: null                         # Path to CA certificates file
-      # ssl_cert_reqs: 0                           # Client certificate requirements
   
     # Logging Configuration
     logging:
