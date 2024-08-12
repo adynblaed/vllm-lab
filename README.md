@@ -1,6 +1,6 @@
 # vLLM Lab
 
-An inference environment for launching and benchmarking vLLM servers with customizable `yaml` configurations for compatible large language models.
+An inference environment for launching and benchmarking 'vLLM' servers with customizable `yaml` configurations for compatible large language models.
 
 ## Docs
 
