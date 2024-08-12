@@ -10,7 +10,6 @@ import yaml
 from datetime import datetime
 from typing import Dict, Any, List, Tuple
 from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util.retry import Retry
 import psutil
 import platform
 import torch
@@ -30,7 +29,7 @@ class vLLMHealthCheck:
         logging.info(f"Loaded system_message: {self.system_message['content']}")
         logging.info(f"Loaded user_message: {self.user_message['content']}")
         self.session = self.create_session()
-            
+
     @staticmethod
     def load_config(config_file: str) -> Dict[str, Any]:
         with open(config_file, 'r') as f:
@@ -74,11 +73,21 @@ class vLLMHealthCheck:
 
     def create_session(self) -> requests.Session:
         session = requests.Session()
-        retries = Retry(total=3, backoff_factor=0.3, status_forcelist=[500, 502, 504])
-        adapter = HTTPAdapter(max_retries=retries)
-        session.mount('http://', adapter)
-        session.mount('https://', adapter)
         return session
+
+    def request_with_retries(self, method: str, url: str, retries: int = 3, backoff_factor: float = 0.3, **kwargs) -> requests.Response:
+        for attempt in range(retries):
+            try:
+                response = self.session.request(method, url, **kwargs)
+                response.raise_for_status()
+                return response
+            except (requests.HTTPError, requests.ConnectionError, requests.Timeout) as e:
+                logging.warning(f"Request failed (attempt {attempt + 1} of {retries}): {e}")
+                if attempt < retries - 1:
+                    time.sleep(backoff_factor * (2 ** attempt))
+                else:
+                    raise
+        return None
 
     def log_response_details(self, endpoint: str, response: requests.Response, elapsed_time: float) -> None:
         logging.info(f"{endpoint}:")
@@ -117,8 +126,7 @@ class vLLMHealthCheck:
         full_url = f"{self.base_url}{endpoint}"
         start_time = time.time()
         try:
-            response = self.session.request(method, full_url, **kwargs)
-            response.raise_for_status()
+            response = self.request_with_retries(method, full_url, **kwargs)
             elapsed_time = time.time() - start_time
             self.log_response_details(endpoint, response, elapsed_time)
             
@@ -388,3 +396,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
