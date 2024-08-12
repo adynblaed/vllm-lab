@@ -29,7 +29,7 @@ Launch a vLLM server with your custom test config:
 python server/vllm_server.py config/vllm_test.yaml
 ```
 
-Test your server api health with the same config file:
+Test your server API health with the same config file:
 
  ```bash
 python test/vllm_api_health_check.py config/vllm_test.yaml 
